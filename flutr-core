@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# flutr-core: start/stop flutr services using docker compose
+# Usage: flutr-core up|down
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+shared_compose="$script_dir/docker-compose.shared.yaml"
+flutr_compose="$script_dir/docker-compose.flutr.yaml"
+compose_args=()
+[ -f "$shared_compose" ] && compose_args+=("-f" "$shared_compose")
+# [ -f "$flutr_compose" ] && compose_args+=("-f" "$flutr_compose")
+
+if [ ${#compose_args[@]} -eq 0 ]; then
+  echo "No compose files found in $script_dir (expected docker-compose.shared.yaml or docker-compose.flutr.yaml)" >&2
+  exit 1
+fi
+
+DOCKER_CMD=(docker)
+# Choose docker compose command
+if command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker-compose)
+elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker compose)
+else
+  echo "Neither 'docker-compose' nor 'docker compose' is available in PATH" >&2
+  exit 1
+fi
+
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 {up|down}" >&2
+  exit 2
+fi
+
+case "$1" in
+  up)
+    echo "Starting flutr services..."
+    # Source setenv if present
+    if [ -f "$script_dir/setenv" ]; then
+    # shellcheck disable=SC1090
+    . "$script_dir/setenv"
+    fi
+    # Ensure we have a docker network for flutr
+    network_name="flutr"
+    if ! "${COMPOSE_CMD[@]}" network ls --format '{{.Name}}' | grep -q "^${network_name}\$"; then
+      echo "Creating docker network: ${network_name}"
+      "${DOCKER_CMD[@]}" network create "${network_name}"
+    fi
+    "${COMPOSE_CMD[@]}" "${compose_args[@]}" up -d
+    ;;
+  down)
+    echo "Stopping flutr services..."
+    "${COMPOSE_CMD[@]}" "${compose_args[@]}" down
+    ;;
+  *)
+    echo "Usage: $0 {up|down}" >&2
+    exit 2
+    ;;
+esac
+
+exit 0

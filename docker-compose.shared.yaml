@@ -1,7 +1,7 @@
 name: shared
 services:
   postgres:
-    image: postgres:16.3
+    image: postgres:18.1
     container_name: postgres
     ports:
       - '5432:5432'
@@ -17,7 +17,7 @@ services:
     networks:
       flutr:
   redis:
-    image: redis:8.2.2
+    image: redis:8.4.0
     container_name: redis
     ports:
       - '6379:6379'
@@ -43,16 +43,16 @@ services:
 #    command: ["-c", "/etc/nats/nats.conf"]
     command: ["--jetstream"]
 
-  nats-client:
-    image: natsio/nats-box
-    container_name: nats_client
-    restart: always
-    depends_on:
-      - nats
-    entrypoint: /bin/sh
-    tty: true
-    networks:
-      flutr:
+  # nats-client:
+  #   image: natsio/nats-box
+  #   container_name: nats_client
+  #   restart: always
+  #   depends_on:
+  #     - nats
+  #   entrypoint: /bin/sh
+  #   tty: true
+  #   networks:
+  #     flutr:
 
 #  influxdb3:
 #    image: influxdb:3-core
